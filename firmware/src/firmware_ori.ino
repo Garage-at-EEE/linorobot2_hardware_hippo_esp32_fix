@@ -49,7 +49,7 @@
 #include <esp_task_wdt.h>
 #endif
 #ifdef USE_WIFI_TRANSPORT
-// remove wifi initialization code from wifi transport
+// remove wifi initialization code from wifi transport, this caused RCLerrorLoop() to be called if not using WIFI transport
 static inline void set_microros_net_transports(IPAddress agent_ip, uint16_t agent_port)
 {
     static struct micro_ros_agent_locator locator;
@@ -175,7 +175,8 @@ void setup()
     esp_task_wdt_add(NULL); //add current thread to WDT watch
 #endif
     // initWifis();
-    // initOta();
+    // initOta(); // remove wifi initialization code from wifi transport, this caused RCLerrorLoop() to be called if not using WIFI transport
+
 
     bool imu_ok = imu.init();
     if(!imu_ok)
