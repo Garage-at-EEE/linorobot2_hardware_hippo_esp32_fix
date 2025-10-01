@@ -108,6 +108,7 @@ rclc_executor_t executor;
 rclc_support_t support;
 rcl_allocator_t allocator;
 rcl_node_t node;
+// rcl_timer_t publish_timer;
 rcl_timer_t control_timer;
 rcl_timer_t battery_timer;
 rcl_timer_t range_timer;
@@ -173,15 +174,15 @@ void setup()
     esp_task_wdt_init(WDT_TIMEOUT, true); //enable panic so ESP32 restarts
     esp_task_wdt_add(NULL); //add current thread to WDT watch
 #endif
-    initWifis();
-    initOta();
+    // initWifis();
+    // initOta();
 
     bool imu_ok = imu.init();
     if(!imu_ok)
     {
         while(1)
         {
-            flashLED(3);
+            flashLED(5);
         }
     }
     mag.init();
@@ -227,8 +228,8 @@ void loop() {
         default:
             break;
     }
-    runWifis();
-    runOta();
+    // runWifis();
+    // runOta();
 #ifdef WDT_TIMEOUT
     esp_task_wdt_reset();
 #endif
@@ -327,7 +328,7 @@ bool createEntities()
         TOPIC_PREFIX "cmd_vel"
     ));
     // create timer for actuating the motors at 50 Hz (1000/20)
-    const unsigned int control_timeout = 20;
+    const unsigned int control_timeout = 10;
     RCCHECK(rclc_timer_init_default( 
         &control_timer, 
         &support,
@@ -429,18 +430,13 @@ void moveBase()
     float current_rpm3 = motor3_encoder.getRPM();
     float current_rpm4 = motor4_encoder.getRPM();
 
-    if(twist_msg.linear.x == 0.0 && twist_msg.angular.z == 0.0){
-        fullStop();
 
-    }else{
-
-        // the required rpm is capped at -/+ MAX_RPM to prevent the PID from having too much error
-        // the PWM value sent to the motor driver is the calculated PID based on required RPM vs measured RPM
-        motor1_controller.spin(motor1_pid.compute(req_rpm.motor1, current_rpm1));
-        motor2_controller.spin(motor2_pid.compute(req_rpm.motor2, current_rpm2));
-        motor3_controller.spin(motor3_pid.compute(req_rpm.motor3, current_rpm3));
-        motor4_controller.spin(motor4_pid.compute(req_rpm.motor4, current_rpm4));
-    }
+    // the required rpm is capped at -/+ MAX_RPM to prevent the PID from having too much error
+    // the PWM value sent to the motor driver is the calculated PID based on required RPM vs measured RPM
+    motor1_controller.spin(motor1_pid.compute(req_rpm.motor1, current_rpm1));
+    motor2_controller.spin(motor2_pid.compute(req_rpm.motor2, current_rpm2));
+    motor3_controller.spin(motor3_pid.compute(req_rpm.motor3, current_rpm3));
+    motor4_controller.spin(motor4_pid.compute(req_rpm.motor4, current_rpm4));
 
     Kinematics::velocities current_vel = kinematics.getVelocities(
         current_rpm1, 
@@ -473,23 +469,23 @@ void publishData()
 #endif
     // https://github.com/hiwad-aziz/ros2_mpu9250_driver
     // Calculate Euler angles
-    double roll, pitch, yaw;
-    roll = atan2(imu_msg.linear_acceleration.y, imu_msg.linear_acceleration.z);
-    pitch = atan2(-imu_msg.linear_acceleration.y,
-                (sqrt(imu_msg.linear_acceleration.y * imu_msg.linear_acceleration.y +
-                      imu_msg.linear_acceleration.z * imu_msg.linear_acceleration.z)));
-    yaw = atan2(mag_msg.magnetic_field.y, mag_msg.magnetic_field.x);
+//    double roll, pitch, yaw;
+//    roll = atan2(imu_msg.linear_acceleration.y, imu_msg.linear_acceleration.z);
+//    pitch = atan2(-imu_msg.linear_acceleration.y,
+//                (sqrt(imu_msg.linear_acceleration.y * imu_msg.linear_acceleration.y +
+//                      imu_msg.linear_acceleration.z * imu_msg.linear_acceleration.z)));
+//    yaw = atan2(mag_msg.magnetic_field.y, mag_msg.magnetic_field.x);
     // Convert to quaternion
-    double cy = cos(yaw * 0.5);
-    double sy = sin(yaw * 0.5);
-    double cp = cos(pitch * 0.5);
-    double sp = sin(pitch * 0.5);
-    double cr = cos(roll * 0.5);
-    double sr = sin(roll * 0.5);
-    imu_msg.orientation.x = cy * cp * sr - sy * sp * cr;
-    imu_msg.orientation.y = sy * cp * sr + cy * sp * cr;
-    imu_msg.orientation.z = sy * cp * cr - cy * sp * sr;
-    imu_msg.orientation.w = cy * cp * cr + sy * sp * sr;
+//    double cy = cos(yaw * 0.5);
+//    double sy = sin(yaw * 0.5);
+//    double cp = cos(pitch * 0.5);
+//    double sp = sin(pitch * 0.5);
+//    double cr = cos(roll * 0.5);
+//    double sr = sin(roll * 0.5);
+//    imu_msg.orientation.x = cy * cp * sr - sy * sp * cr;
+//    imu_msg.orientation.y = sy * cp * sr + cy * sp * cr;
+//    imu_msg.orientation.z = sy * cp * cr - cy * sp * sr;
+//    imu_msg.orientation.w = cy * cp * cr + sy * sp * sr;
 
     struct timespec time_stamp = getTime();
 
